@@ -226,6 +226,42 @@ brew install gradle
 
 ---
 
+## Running Tests
+
+### Python (pytest)
+
+```bash
+cd services/ingestor-python
+source .venv/bin/activate
+python -m pytest tests/ -v
+```
+
+| File | Coverage |
+|------|----------|
+| `test_ingest.py` | Lock acquired/skipped/released, datetime serialization, Kafka failure |
+| `test_ingest_http.py` | POST 200, GET 405, lock-held skipped, downstream exception 500 |
+
+### Java (JUnit + Mockito)
+
+```bash
+cd services/api-java
+./gradlew test
+```
+
+| Test | Coverage |
+|------|----------|
+| `should_return_success_on_health` | /health returns 200 |
+| `should_return_success_when_search_request_is_valid` | cache miss → query ES → 200 |
+| `should_return_cached_result_without_calling_es_on_cache_hit` | cache hit → ES never called |
+| `should_record_trending_before_cache_check` | trending recorded on every search |
+| `should_return_400_when_q_param_is_missing` | missing `?q` → 400 |
+| `should_return_5xx_when_es_throws_exception` | ES down → 500 |
+| `should_return_success_when_article_exists` | /articles/{id} found → 200 |
+| `should_return_404_when_article_not_found` | /articles/{id} missing → 404 |
+| `should_return_success_with_trending_list` | /trending → 200 with list |
+
+---
+
 ## Project Structure
 
 ```
@@ -237,10 +273,13 @@ NewsPulse/
 └── services/
     ├── ingestor-python/              # RSS fetcher → Kafka producer
     │   ├── requirements.txt
-    │   └── app/
-    │       ├── main.py               # FastAPI + APScheduler (15 min)
-    │       ├── ingest.py             # Redis lock + KafkaProducer → raw-articles
-    │       └── rss_fetcher.py        # feedparser (BBC, TechCrunch, HN)
+    │   ├── app/
+    │   │   ├── main.py               # FastAPI + APScheduler (15 min)
+    │   │   ├── ingest.py             # Redis lock + KafkaProducer → raw-articles
+    │   │   └── rss_fetcher.py        # feedparser (BBC, TechCrunch, HN)
+    │   └── tests/
+    │       ├── test_ingest.py        # Unit tests: lock, Kafka, datetime
+    │       └── test_ingest_http.py   # HTTP tests: 200/405/500
     ├── consumer-python/              # Kafka consumers (3 independent processes)
     │   ├── Dockerfile
     │   ├── requirements.txt
@@ -251,10 +290,14 @@ NewsPulse/
     └── api-java/                     # Search API
         ├── build.gradle
         ├── settings.gradle
-        └── src/main/java/com/newspulse/api/
-            ├── Application.java
-            ├── ArticleEntity.java
-            ├── ArticleRepository.java
-            ├── ElasticSearchConfig.java
-            └── ApiController.java    # /health /search /articles/{id} /trending
+        └── src/
+            ├── main/java/com/newspulse/api/
+            │   ├── Application.java
+            │   ├── ArticleEntity.java
+            │   ├── ArticleRepository.java
+            │   ├── ElasticSearchConfig.java
+            │   ├── GlobalExceptionHandler.java  # 400/404/500 error handling
+            │   └── ApiController.java           # /health /search /articles/{id} /trending
+            └── test/java/com/newspulse/api/
+                └── ApiControllerTest.java       # 9 tests: happy path, 4xx, 5xx
 ```
