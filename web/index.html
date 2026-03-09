@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>News Pulse Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; }
+        input { width: 420px; padding: 8px; }
+        button { padding: 8px 12px; }
+        .item { padding: 12px 0; border-bottom: 1px solid #ddd; }
+        .meta { color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+<h1>News Pulse</h1>
+<div>
+    <input id="q" placeholder="Type keyword e.g., AWS internship" />
+    <input id="source" placeholder="source (optional) e.g., bbc" />
+    <button onclick="run()">Search</button>
+</div>
+
+<div id="out" style="margin-top: 16px;"></div>
+
+<script>
+    async function run() {
+        const q = document.getElementById("q").value.trim();
+        const source = document.getElementById("source").value.trim();
+        if (!q) return;
+
+        const url = new URL("http://localhost:8080/search");
+        url.searchParams.set("q", q);
+        if (source) url.searchParams.set("source", source);
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const out = document.getElementById("out");
+        out.innerHTML = `<div class="meta">Total: ${data.total}</div>`;
+
+        for (const it of data.results) {
+            out.innerHTML += `
+            <div class="item">
+              <div><a href="${it.url}" target="_blank">${it.title}</a></div>
+              <div class="meta">${it.source} · ${it.published_at || ""} · id=${it.id}</div>
+              <div>${(it.summary || "").slice(0, 200)}...</div>
+            </div>
+          `;
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/newspulse}
+    username: ${DB_USER:newspulse}
+    password: ${DB_PASSWORD:newspulse}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+newspulse:
+  elasticsearch:
+    url: ${ES_URL:http://localhost:9200}
+    index: articles
